@@ -1,16 +1,18 @@
-FROM golang:1.8.3-alpine
-MAINTAINER Aurelien PERRIER <a.perrier89@gmail.com>
+FROM golang:1.12-alpine AS build-env
 
-ENV webserver_path /go/src/github.com/perriea/webserver/
-ENV PATH $PATH:$webserver_path
+LABEL ROLE "build"
+ENV GO111MODULE=off
 
-WORKDIR $webserver_path
-COPY webserver/ .
+RUN apk add --no-cache make
 
-RUN apk -Uuv add openssl
-RUN sh "$(pwd)/ssl/install.sh"
-RUN go build .
+WORKDIR ${GOPATH}/src/github.com/container-examples/golang-webserver/
+COPY . .
 
-ENTRYPOINT ./webserver
+RUN make
 
-EXPOSE 80 443
+FROM alpine:3.10
+LABEL maintainer="a.perrier89@gmail.com"
+
+COPY --from=build-env /go/src/github.com/container-examples/golang-webserver/build/webserver /bin/webserver
+
+ENTRYPOINT [ "/bin/webserver" ]
