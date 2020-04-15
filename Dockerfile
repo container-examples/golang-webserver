@@ -1,18 +1,18 @@
 FROM golang:1.12-alpine AS build-env
 
-LABEL ROLE "build"
-ENV GO111MODULE=off
+ENV GO111MODULE=on
 
-RUN apk add --no-cache make
+RUN apk add --no-cache git
 
 WORKDIR ${GOPATH}/src/github.com/container-examples/golang-webserver/
 COPY . .
 
-RUN make
+RUN go mod download
+RUN go build -ldflags="-w -s" -o ./build/webserver .
 
-FROM alpine:3.10
-LABEL maintainer="a.perrier89@gmail.com"
+FROM alpine:3.11
 
-COPY --from=build-env /go/src/github.com/container-examples/golang-webserver/build/webserver /bin/webserver
+WORKDIR /app
+COPY --from=build-env /go/src/github.com/container-examples/golang-webserver/build/webserver /app/webserver
 
-ENTRYPOINT [ "/bin/webserver" ]
+ENTRYPOINT [ "/app/webserver" ]
